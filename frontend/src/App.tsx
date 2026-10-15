@@ -131,7 +131,7 @@ export default function App() {
   return (
     <div className="app">
       <aside className="sidebar">
-        <button className="brand" onClick={() => setJob(null)}><span className="mark" /> Startup Intel</button>
+        <button className="brand" onClick={() => setJob(null)}><img className="mark" src="/favicon.svg" alt="" /> Startup Intel</button>
         <button className="new-btn" onClick={() => setJob(null)}><span>＋</span> New research</button>
         <div className="side-label"><span>Recent</span>
           {past.some(p => p.status !== "running") && <button className="side-clear" onClick={clearAll}>Clear all</button>}

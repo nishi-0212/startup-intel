@@ -401,3 +401,4 @@ kbd { font: 11px ui-monospace, monospace; opacity: .55; margin-left: 6px; }
 .h-row:hover .h-del, .h-del:focus-visible { opacity: 1; }
 .h-row:hover .h-time { opacity: 0; }
 .h-del:hover { color: var(--pink-ink); background: var(--pink-soft); }
+.mark { background: none; display: block; }
