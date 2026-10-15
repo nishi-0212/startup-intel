@@ -9,6 +9,7 @@ from typing import Annotated, TypedDict
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel
@@ -904,6 +905,15 @@ def to_md(job):
 
 # ---------------------------------------------------------------- API
 app = FastAPI(title="Startup Intelligence Orchestrator")
+# Comma-separated list of allowed frontend origins, e.g. "https://startup-intel.vercel.app". Defaults to local dev.
+ALLOWED_ORIGINS = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",") if o.strip()]
+app.add_middleware(CORSMiddleware, allow_origins=ALLOWED_ORIGINS, allow_methods=["*"], allow_headers=["*"],
+                   allow_origin_regex=os.getenv("ALLOWED_ORIGIN_REGEX") or None)
+
+
+@app.get("/api/health")
+def health():
+    return {"ok": True}
 
 
 class JobReq(BaseModel):
