@@ -7,6 +7,9 @@ import type { Job, Summary } from "./lib";
 
 type Theme = "system" | "light" | "dark";
 
+// Backend base URL: empty in local dev (Vite proxies /api), the Render URL in production (set VITE_API_URL on Vercel).
+const API = ((import.meta as any).env?.VITE_API_URL ?? "").replace(/\/$/, "");
+
 /** A little personality for each agent while it works. Lines rotate every few seconds. */
 const QUIPS: Record<string, { running: string[]; done: string }> = {
   research: { running: ["Stalking their socials", "Reading their About page so you don't have to", "Googling harder than an intern on day one"], done: "Got the full backstory" },
@@ -68,20 +71,20 @@ export default function App() {
     try { localStorage.setItem("theme", theme); } catch { /* storage unavailable */ }
   }, [theme]);
 
-  const loadPast = () => fetch("/api/jobs").then(r => r.json()).then(setPast).catch(() => {});
+  const loadPast = () => fetch(API + "/api/jobs").then(r => r.json()).then(setPast).catch(() => {});
   useEffect(() => { loadPast(); }, []);
 
   useEffect(() => {
     if (!job || job.status !== "running" || job.id === "pending") return;
     const t = setInterval(async () => {
-      const r = await fetch(`/api/jobs/${job.id}`);
+      const r = await fetch(`${API}/api/jobs/${job.id}`);
       if (r.ok) { const j = await r.json(); setJob(j); if (j.status !== "running") loadPast(); }
     }, 1500);
     return () => clearInterval(t);
   }, [job?.id, job?.status]);
 
   const open = async (id: string) => {
-    const r = await fetch(`/api/jobs/${id}`);
+    const r = await fetch(`${API}/api/jobs/${id}`);
     if (r.ok) { setJob(await r.json()); window.scrollTo({ top: 0 }); }
   };
 
@@ -93,30 +96,30 @@ export default function App() {
       budget: { calls: 0, tokens: 0, max_calls: 0, max_tokens: 0 }, verification: null, sources: {}, security: [], report: null });
     window.scrollTo({ top: 0 });
     try {
-      const r = await fetch("/api/jobs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ startup: name, objective: objective || "general overview" }) });
+      const r = await fetch(API + "/api/jobs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ startup: name, objective: objective || "general overview" }) });
       if (!r.ok) { setJob(null); setErr((await r.json()).detail ?? "Could not start research"); return; }
       await open((await r.json()).id); loadPast();
-    } catch { setJob(null); setErr("Can't reach the backend. Is it running on port 8000?"); }
+    } catch { setJob(null); setErr("Can't reach the backend. If it was idle it may be waking up, so try again in about 30 seconds."); }
   };
 
   const [removing, setRemoving] = useState<string | null>(null);
   const remove = async (id: string) => {
     setRemoving(id);                                   // play the exit animation first
     await new Promise(r => setTimeout(r, 220));
-    const r = await fetch(`/api/jobs/${id}`, { method: "DELETE" });
+    const r = await fetch(`${API}/api/jobs/${id}`, { method: "DELETE" });
     setRemoving(null);
     if (r.ok) { setPast(ps => ps.filter(p => p.id !== id)); if (job?.id === id) setJob(null); }
   };
   const clearAll = async () => {
     if (!window.confirm("Delete all finished research from history?")) return;
-    await fetch("/api/jobs", { method: "DELETE" });
+    await fetch(API + "/api/jobs", { method: "DELETE" });
     if (job && job.status !== "running") setJob(null);
     loadPast();
   };
 
-  const resume = async () => { await fetch(`/api/jobs/${job!.id}/resume`, { method: "POST" }); open(job!.id); };
+  const resume = async () => { await fetch(`${API}/api/jobs/${job!.id}/resume`, { method: "POST" }); open(job!.id); };
   const exportMd = async () => {
-    const txt = await (await fetch(`/api/jobs/${job!.id}/export`)).text();
+    const txt = await (await fetch(`${API}/api/jobs/${job!.id}/export`)).text();
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([txt], { type: "text/markdown" }));
     a.download = `${job!.startup}-intelligence-report.md`; a.click();
